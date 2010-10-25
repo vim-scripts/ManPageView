@@ -1,8 +1,8 @@
-*manpageview.txt*	Man Page Viewer			Nov 26, 2008
+*manpageview.txt*	Man Page Viewer			Oct 21, 2010
 
 Author:  Charles E. Campbell, Jr.  <NdrchipO@ScampbellPfamily.AbizM>
 	  (remove NOSPAM from Campbell's email first)
-Copyright: (c) 2004-2008 by Charles E. Campbell, Jr.	*manpageview-copyright*
+Copyright: (c) 2004-2009 by Charles E. Campbell, Jr.	*manpageview-copyright*
            The VIM LICENSE applies to ManPageView.vim and ManPageView.txt
            (see |copyright|) except use "ManPageView" instead of "Vim"
 	   no warranty, express or implied.  use at-your-own-risk.
@@ -133,6 +133,12 @@ Copyright: (c) 2004-2008 by Charles E. Campbell, Jr.	*manpageview-copyright*
 	copy of the links WWW browser.  The homepage for Elinks is
 	http://elinks.cz/.
 
+	PYTHON					*manpageview-python*
+
+	For python help, Manpageview depends upon pydoc.  As an
+	example, try >
+		:Man pprint.py
+<
 
 	EXTENDING MANPAGEVIEW			*manpageview-extend* {{{2
 
@@ -290,6 +296,14 @@ Copyright: (c) 2004-2008 by Charles E. Campbell, Jr.	*manpageview-copyright*
 	Thanks go to the various people who have contributed changes,
 	pointed out problems, and made suggestions!
 
+	v23: May 18, 2009  * on the third attempt to get a manpage, if
+	                     the user provided no explicit
+			     |g:manpageview_iconv| setting, then the
+			     an attempt is made with iconv off.
+			   * Fixed K mapping for php, tex, etc.
+			   * (in progress) KMan [ext] to set default
+			     extension for the K map
+	     Oct 21, 2010  * added python help via pydoc (suffix: .py)
 	v22: Nov 10, 2008  * if g:manpageview_K_{ext} (ext is some
 			     extension) exists, previously that would
 			     be enough to institute a K map.  Now, if

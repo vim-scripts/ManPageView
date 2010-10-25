@@ -15,7 +15,7 @@ In addition, while in normal mode and with the cursor on some topic (system func
 
 The tip vimtip#167 addresses setting up man so that it invokes vim from the command line.
 
-ManPageView supports display of info, perldoc (both system and embedded) help and php files.
+ManPageView supports display of info, perldoc (both system and embedded), php, and python help:.
 
     INFO
         :Man info.i
@@ -27,6 +27,9 @@ ManPageView supports display of info, perldoc (both system and embedded) help an
 
     PHP  (requires the links program)
         :Man printf.php
+
+   PYTHON: (requires pydoc)
+       :Man pprint.py
 
 ManPageView "knows" what display tool to invoke by examining the suffix.  For perl, for example, g:manpageview_pgm_pl is (by default) initialized to perldoc.  Similar support is available for custom initialization, overriding the K map, providing a standard prefix or suffix, and specialized syntax highlighting.
 

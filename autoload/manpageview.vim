@@ -1,7 +1,7 @@
 " manpageview.vim : extra commands for manual-handling
 " Author:	Charles E. Campbell, Jr.
-" Date:		Nov 26, 2008
-" Version:	22
+" Date:		Oct 21, 2010
+" Version:	23f	ASTRO-ONLY
 "
 " Please read :help manpageview for usage, options, etc
 "
@@ -12,7 +12,7 @@
 if &cp || exists("g:loaded_manpageview")
  finish
 endif
-let g:loaded_manpageview = "v22"
+let g:loaded_manpageview = "v23f"
 if v:version < 702
  echohl WarningMsg
  echo "***warning*** this version of manpageview needs vim 7.2"
@@ -66,6 +66,7 @@ if !exists("g:manpageview_options")
  let g:manpageview_options= ""
 endif
 if !exists("g:manpageview_pgm_i")
+" call Decho("installed info help support via manpageview")
  let g:manpageview_pgm_i     = "info"
  let g:manpageview_options_i = "--output=-"
  let g:manpageview_syntax_i  = "info"
@@ -78,21 +79,30 @@ if !exists("g:manpageview_pgm_i")
  let s:linkpat4 = '^\* [^:]*:\s*\([^.]*\)\.$'      " index
 endif
 if !exists("g:manpageview_pgm_pl")
+" call Decho("installed perl help support via manpageview")
  let g:manpageview_pgm_pl     = "perldoc"
  let g:manpageview_options_pl = ";-f;-q"
 endif
 if !exists("g:manpageview_pgm_php") && executable("links")
+" call Decho("installed php help support via manpageview")
  let g:manpageview_pgm_php     = "links -dump http://www.php.net/"
  let g:manpageview_syntax_php  = "manphp"
  let g:manpageview_nospace_php = 1
- let g:manpageview_K_php       = "<sid>ManPagePhp()"
+ let g:manpageview_K_php       = "manpageview#ManPagePhp()"
+endif
+if !exists("g:manpageview_pgm_py") && executable("pydoc")
+" call Decho("installed python help support via manpageview")
+ let g:manpageview_pgm_py     = "pydoc"
+ let g:manpageview_K_py       = "manpageview#ManPagePython()"
 endif
 if exists("g:manpageview_hypertext_tex") && executable("links") && !exists("g:manpageview_pgm_tex")
+" call Decho("installed tex help support via manpageview")
  let g:manpageview_pgm_tex    = "links ".g:manpageview_hypertext_tex
- let g:manpageview_lookup_tex = "<sid>ManPageTexLookup"
- let g:manpageview_K_tex      = "<sid>ManPageTex()"
+ let g:manpageview_lookup_tex = "manpageview#ManPageTexLookup"
+ let g:manpageview_K_tex      = "manpageview#ManPageTex()"
 endif
 if has("win32") && !exists("g:manpageview_rsh")
+" call Decho("installed rsh help support via manpageview")
  let g:manpageview_rsh= "rsh"
 endif
 
@@ -313,6 +323,10 @@ fun! manpageview#ManPageView(viamap,bknum,...) range
    elseif &ft == "php"
    	let ext = "php"
 
+	" filetype:  python
+   elseif &ft == "python"
+   	let ext = "py"
+
    " filetype: tex
   elseif &ft == "tex"
    let ext= "tex"
@@ -334,21 +348,25 @@ fun! manpageview#ManPageView(viamap,bknum,...) range
    let manpagetopic        = "Top"
 "   call Decho("top-level info: manpagetopic<".manpagetopic.">")
   endif
+
   if exists("s:manpageview_pfx_{ext}") && s:manpageview_pfx_{ext} != ""
    let manpagetopic= s:manpageview_pfx_{ext}.manpagetopic
   elseif exists("g:manpageview_pfx_{ext}") && g:manpageview_pfx_{ext} != ""
    " prepend any extension-specified prefix to manpagetopic
    let manpagetopic= g:manpageview_pfx_{ext}.manpagetopic
   endif
+
   if exists("g:manpageview_sfx_{ext}") && g:manpageview_sfx_{ext} != ""
    " append any extension-specified suffix to manpagetopic
    let manpagetopic= manpagetopic.g:manpageview_sfx_{ext}
   endif
+
   if exists("g:manpageview_K_{ext}") && g:manpageview_K_{ext} != ""
    " override usual K map
 "   call Decho("override K map to call ".g:manpageview_K_{ext})
-   exe "nmap <silent> K :call ".fnameescape(g:manpageview_K_{ext})."\<cr>"
+   exe "nmap <silent> K :call ".g:manpageview_K_{ext}."\<cr>"
   endif
+
   if exists("g:manpageview_syntax_{ext}") && g:manpageview_syntax_{ext} != ""
    " allow special-suffix extensions to optionally control syntax highlighting
    let manpageview_syntax= g:manpageview_syntax_{ext}
@@ -449,6 +467,10 @@ fun! manpageview#ManPageView(viamap,bknum,...) range
    return
   endif
 
+  " let manpages format themselves to specified window width
+  " this setting probably only affects the linux "man" command.
+  let $MANWIDTH= winwidth(0)
+
   " add some maps for multiple manpage handling {{{3
   if g:manpageview_multimanpage
    nmap <silent> <script> <buffer> <PageUp>				:call search("^NAME$",'bW')<cr>z<cr>5<c-y>
@@ -492,7 +514,7 @@ fun! manpageview#ManPageView(viamap,bknum,...) range
   if exists("g:manpageview_init_{ext}")
    if !exists("b:manpageview_init_{ext}")
 "    call Decho("exe manpageview_init_".ext."<".g:manpageview_init_{ext}.">")
-	exe fnameescape(g:manpageview_init_{ext})
+	exe g:manpageview_init_{ext}
 	let b:manpageview_init_{ext}= 1
    endif
   elseif ext == ""
@@ -513,7 +535,7 @@ fun! manpageview#ManPageView(viamap,bknum,...) range
    let cnt   = cnt + 1
    let iopt  = substitute(opt,';.*$','','e')
    let opt   = substitute(opt,'^.\{-};\(.*\)$','\1','e')
-"   call Decho("iopt<".iopt."> opt<".opt.">")
+"   call Decho("cnt=".cnt." iopt<".iopt."> opt<".opt."> s:iconv<".s:iconv.">")
 
    " use pgm to read/find/etc the manpage (but only if pgm is not the empty string)
    " by default, pgm is "man"
@@ -544,13 +566,13 @@ fun! manpageview#ManPageView(viamap,bknum,...) range
 	  let mpb= ""
 	 endif
      if nospace
-"	  call Decho("(nospace) exe silent! ".cmdmod."r!".pgm.iopt.mpb.manpagetopic)
+"      call Decho("(nospace) exe silent! ".cmdmod."r!".pgm.iopt.mpb.manpagetopic.s:iconv)
       exe cmdmod."r!".pgm.iopt.mpb.shellescape(manpagetopic,1).s:iconv
      elseif has("win32")
-"       call Decho("(win32) exe ".cmdmod."r!".pgm." ".iopt." ".mpb." \"".manpagetopic."\"")
+"	   call Decho("(win32) exe ".cmdmod."r!".pgm." ".iopt." ".mpb." \"".manpagetopic."\" ".s:iconv)
        exe cmdmod."r!".pgm." ".iopt." ".mpb." ".shellescape(manpagetopic,1)." ".s:iconv
 	 else
-"      call Decho("(nrml) exe ".cmdmod."r!".pgm." ".iopt." ".mpb." '".manpagetopic."'")
+"	  call Decho("(nrml) exe ".cmdmod."r!".pgm." ".iopt." ".mpb." '".manpagetopic."' ".s:iconv)
       exe cmdmod."r!".pgm." ".iopt." ".mpb." ".shellescape(manpagetopic,1)." ".s:iconv
 	endif
      exe cmdmod.'silent!  %s/.\b//ge'
@@ -564,6 +586,10 @@ fun! manpageview#ManPageView(viamap,bknum,...) range
     break
    endif
 "   call Decho("manpage not found")
+   if cnt == 3 && !exists("g:manpageview_iconv") && s:iconv != ""
+	let s:iconv= ""
+"	call Decho("trying with no iconv")
+   endif
   endwhile
 
   " here comes the vim display size restoration {{{3
@@ -642,12 +668,13 @@ fun! s:MPVSaveSettings()
 
   if !exists("s:sxqkeep")
 "   call Dfunc("s:MPVSaveSettings()")
+   let s:manwidth          = expand("$MANWIDTH")
    let s:sxqkeep           = &sxq
    let s:srrkeep           = &srr
    let s:repkeep           = &report
    let s:gdkeep            = &gd
    let s:cwhkeep           = &cwh
-   let s:magickeep         = &magic
+   let s:magickeep         = &l:magic
    setlocal srr=> report=10000 nogd magic
    if &cwh < 2
     " avoid hit-enter prompts
@@ -658,6 +685,8 @@ fun! s:MPVSaveSettings()
   else
    let &sxq= ""
   endif
+  let s:curmanwidth = $MANWIDTH
+  let $MANWIDTH     = winwidth(0)
 "  call Dret("s:MPVSaveSettings")
  endif
 
@@ -668,12 +697,13 @@ endfun
 fun! s:MPVRestoreSettings()
   if exists("s:sxqkeep")
 "   call Dfunc("s:MPV_RestoreSettings()")
-   let &sxq    = s:sxqkeep   | unlet s:sxqkeep
-   let &srr    = s:srrkeep   | unlet s:srrkeep
-   let &report = s:repkeep   | unlet s:repkeep
-   let &gd     = s:gdkeep    | unlet s:gdkeep
-   let &cwh    = s:cwhkeep   | unlet s:cwhkeep
-   let &magic  = s:magickeep | unlet s:magickeep
+   let &sxq      = s:sxqkeep     | unlet s:sxqkeep
+   let &srr      = s:srrkeep     | unlet s:srrkeep
+   let &report   = s:repkeep     | unlet s:repkeep
+   let &gd       = s:gdkeep      | unlet s:gdkeep
+   let &cwh      = s:cwhkeep     | unlet s:cwhkeep
+   let &l:magic  = s:magickeep   | unlet s:magickeep
+   let $MANWIDTH = s:curmanwidth | unlet s:curmanwidth
 "   call Dret("s:MPV_RestoreSettings")
   endif
 endfun
@@ -716,9 +746,6 @@ fun! s:ManSavePosn()
 
 "  call Dret("s:ManSavePosn")
 endfun
-
-let &cpo= s:keepcpo
-unlet s:keepcpo
 
 " ---------------------------------------------------------------------
 " s:ManPageInfo: {{{2
@@ -790,7 +817,7 @@ fun! s:ManPageInfo(type)
    let fail= "no up node"
    if node == "(dir)"
 	echo "***sorry*** can't go up from this node"
-"    call Dret("ManPageInfo : can't go up a node")
+"    call Dret("s:ManPageInfo : can't go up a node")
     return
    endif
 
@@ -818,11 +845,11 @@ fun! s:ManPageInfo(type)
    call manpageview#ManPageView(1,0,node.".i")
   endif
 
-"  call Dret("ManPageInfo")
+"  call Dret("s:ManPageInfo")
 endfun
 
 " ---------------------------------------------------------------------
-" s:ManPageInfoInit: {{{2
+" ManPageInfoInit: {{{2
 fun! ManPageInfoInit()
 "  call Dfunc("ManPageInfoInit()")
 
@@ -1031,30 +1058,74 @@ fun! s:InfoIndexLink(cmd)
 endfun
 
 " ---------------------------------------------------------------------
-" s:ManPageTex: {{{2
-fun! s:ManPageTex()
+" manpageview#ManPageTex: {{{2
+fun! manpageview#ManPageTex()
   let topic= '\'.expand("<cWORD>")
-"  call Dfunc("s:ManPageTex() topic<".topic.">")
+"  call Dfunc("manpageview#ManPageTex() topic<".topic.">")
   call manpageview#ManPageView(1,0,topic)
-"  call Dret("s:ManPageTex")
+"  call Dret("manpageview#ManPageTex")
 endfun
 
 " ---------------------------------------------------------------------
-" s:ManPageTexLookup: {{{2
-fun! s:ManPageTexLookup(book,topic)
-"  call Dfunc("s:ManPageTexLookup(book<".a:book."> topic<".a:topic.">)")
-"  call Dret("s:ManPageTexLookup ".lookup)
+" manpageview#ManPageTexLookup: {{{2
+fun! manpageview#ManPageTexLookup(book,topic)
+"  call Dfunc("manpageview#ManPageTexLookup(book<".a:book."> topic<".a:topic.">)")
+"  call Dret("manpageview#ManPageTexLookup ".lookup)
 endfun
 
 " ---------------------------------------------------------------------
-" s:ManPagePhp: {{{2
-fun! s:ManPagePhp()
-  let topic=substitute(expand("<cWORD>"),'()\=','.php','')
-"  call Dfunc("s:ManPagePhp() topic<".topic.">")
+" manpageview#:ManPagePhp: {{{2
+fun! manpageview#ManPagePhp()
+  let topic=substitute(expand("<cWORD>"),'()\=.*$','.php','')
+"  call Dfunc("manpageview#ManPagePhp() topic<".topic.">")
   call manpageview#ManPageView(1,0,topic)
-"  call Dret("s:ManPagePhp")
+"  call Dret("manpageview#ManPagePhp")
 endfun
 
+" ---------------------------------------------------------------------
+" manpageview#:ManPagePython: {{{2
+fun! manpageview#ManPagePython()
+  let topic=substitute(expand("<cWORD>"),'()\=.*$','.py','')
+"  call Dfunc("manpageview#ManPagePython() topic<".topic.">")
+  call manpageview#ManPageView(1,0,topic)
+"  call Dret("manpageview#ManPagePython")
+endfun
+
+" ---------------------------------------------------------------------
+" manpageview#KMan: set default extension for K map {{{2
+fun! manpageview#KMan(ext)
+"  call Dfunc("manpageview#KMan(ext<".a:ext.">)")
+
+  if a:ext == "perl"
+   let ext= "pl"
+  elseif a:ext == "gvim"
+   let ext= "vim"
+  elseif a:ext == "info" || a:ext == "i"
+   let ext    = "i"
+   set ft=info
+  elseif a:ext == "man"
+   let ext= ""
+  else
+   let ext= a:ext
+  endif
+"  call Decho("ext<".ext.">")
+
+  " change the K map
+  silent! nummap K
+  silent! nunmap <buffer> K
+  if exists("g:manpageview_K_{ext}") && g:manpageview_K_{ext} != ""
+   exe "nmap <silent> <buffer> K :call ".g:manpageview_K_{ext}."\<cr>"
+"   call Decho("nmap <silent> K :call ".g:manpageview_K_{ext})
+  else
+   nmap <unique> K <Plug>ManPageView
+"   call Decho("nmap <unique> K <Plug>ManPageView")
+  endif
+
+"  call Dret("manpageview#KMan ")
+endfun
+
+let &cpo= s:keepcpo
+unlet s:keepcpo
 " ---------------------------------------------------------------------
 " Modeline: {{{1
 " vim: ts=4 fdm=marker
